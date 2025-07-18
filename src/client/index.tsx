@@ -100,10 +100,92 @@ function App() {
       )}
 
       {/* The canvas where we'll render the globe */}
-      <canvas
-        ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-        style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
-      />
+      import { useRef, useEffect } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+const Map3D = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    // 1. Setup Three.js Scene
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas: canvasRef.current,
+      antialias: true 
+    });
+
+    renderer.setSize(400, 400);
+
+    // 2. Add Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    // 3. Create 3D Terrain (Simplified)
+    const geometry = new THREE.PlaneGeometry(10, 10, 50, 50);
+    const material = new THREE.MeshStandardMaterial({ 
+      color: 0x4dabf7,
+      wireframe: false,
+      flatShading: true
+    });
+
+    // Generate random height (mock terrain)
+    const positions = geometry.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+      positions.setZ(i, Math.random() * 1.5);
+    }
+    geometry.computeVertexNormals();
+
+    const terrain = new THREE.Mesh(geometry, material);
+    terrain.rotation.x = -Math.PI / 2;
+    scene.add(terrain);
+
+    // 4. Add Water (Flat plane)
+    const waterGeometry = new THREE.PlaneGeometry(10, 10);
+    const waterMaterial = new THREE.MeshStandardMaterial({
+      color: 0x339af0,
+      transparent: true,
+      opacity: 0.8
+    });
+    const water = new THREE.Mesh(waterGeometry, waterMaterial);
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = -0.5;
+    scene.add(water);
+
+    // 5. Camera & Controls
+    camera.position.set(5, 5, 5);
+    const controls = new OrbitControls(camera, canvasRef.current);
+    controls.enableDamping = true;
+
+    // 6. Animation Loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      controls.dispose();
+      renderer.dispose();
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
+    />
+  );
+};
+
+export default Map3D;
 
       {/* Let's give some credit */}
       <p>
